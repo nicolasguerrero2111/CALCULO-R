@@ -2,19 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Solución de Ecuaciones</title>
+  <title>Solucionador de Ecuaciones con Voz</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f0f0; }
-    input { margin: 5px; padding: 5px; }
-    button { padding: 8px 12px; }
-    #resultado { margin-top: 15px; }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+    input, button { margin: 5px; padding: 8px; }
+    button { cursor: pointer; }
+    #resultado { margin-top: 20px; background-color: #fff; padding: 15px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-<h2>Resolución de Ecuaciones Lineales y Cuadráticas</h2>
-<p>Forma general: <strong>ax² + bx + c = 0</strong></p>
+<h2>📈 Solucionador de Ecuaciones con Bot de Voz</h2>
+<p>Introduce los coeficientes de la ecuación: <strong>ax² + bx + c = 0</strong></p>
 
 <label>a: <input type="number" id="a" value="1"></label>
 <label>b: <input type="number" id="b" value="-2"></label>
@@ -25,6 +25,14 @@
 <div id="grafica" style="width: 100%; height: 500px;"></div>
 
 <script>
+function hablar(texto) {
+  const voz = new SpeechSynthesisUtterance(texto);
+  voz.lang = "es-ES"; // Español
+  voz.pitch = 1.1;
+  voz.rate = 1;
+  speechSynthesis.speak(voz);
+}
+
 function resolverEcuacion() {
   const a = parseFloat(document.getElementById("a").value);
   const b = parseFloat(document.getElementById("b").value);
@@ -42,33 +50,46 @@ function resolverEcuacion() {
   const dominio = "[-20, 20]";
   const rango = `[${rangoMin}, ${rangoMax}]`;
 
-  let solucion = "";
+  let solucionTexto = "";
+  let textoBot = "";
+
   if (a === 0) {
     if (b !== 0) {
       const raiz = (-c / b).toFixed(2);
-      solucion = `Ecuación Lineal<br>Raíz: x = ${raiz}`;
+      solucionTexto = `Ecuación Lineal<br>Raíz: x = ${raiz}`;
+      textoBot = `La ecuación es lineal. Su raíz es ${raiz}.`;
     } else {
-      solucion = c === 0 ? "La ecuación tiene infinitas soluciones" : "La ecuación no tiene solución";
+      solucionTexto = c === 0
+        ? "La ecuación tiene infinitas soluciones"
+        : "La ecuación no tiene solución";
+      textoBot = solucionTexto;
     }
   } else {
     const discriminante = b * b - 4 * a * c;
     if (discriminante > 0) {
       const raiz1 = ((-b + Math.sqrt(discriminante)) / (2 * a)).toFixed(2);
       const raiz2 = ((-b - Math.sqrt(discriminante)) / (2 * a)).toFixed(2);
-      solucion = `Ecuación Cuadrática<br>Raíces reales: x = ${raiz1}, x = ${raiz2}`;
+      solucionTexto = `Ecuación Cuadrática<br>Raíces reales: x = ${raiz1}, x = ${raiz2}`;
+      textoBot = `La ecuación es cuadrática. Tiene dos soluciones reales: ${raiz1} y ${raiz2}.`;
     } else if (discriminante === 0) {
       const raiz = (-b / (2 * a)).toFixed(2);
-      solucion = `Ecuación Cuadrática<br>Raíz doble: x = ${raiz}`;
+      solucionTexto = `Ecuación Cuadrática<br>Raíz doble: x = ${raiz}`;
+      textoBot = `La ecuación es cuadrática. Tiene una raíz doble: ${raiz}.`;
     } else {
-      solucion = `Ecuación Cuadrática<br>No tiene soluciones reales`;
+      solucionTexto = `Ecuación Cuadrática<br>No tiene soluciones reales`;
+      textoBot = `La ecuación cuadrática no tiene soluciones reales.`;
     }
   }
 
+  const infoExtra = `El dominio es de menos veinte a veinte. El rango va de ${rangoMin} hasta ${rangoMax}.`;
+  hablar(textoBot + " " + infoExtra);
+
   document.getElementById("resultado").innerHTML = `
     <h3>Resultado</h3>
-    <p>${solucion}</p>
+    <p>${solucionTexto}</p>
     <p><strong>Dominio:</strong> ${dominio}</p>
     <p><strong>Rango:</strong> ${rango}</p>
+    <p>🗣️ El bot ha leído esta información en voz alta.</p>
   `;
 
   Plotly.newPlot("grafica", [{
@@ -81,7 +102,7 @@ function resolverEcuacion() {
   }], {
     title: "Gráfica de la función",
     xaxis: { title: "x", range: [-20, 20] },
-    yaxis: { title: "f(x)", range: [parseFloat(rangoMin)-5, parseFloat(rangoMax)+5] },
+    yaxis: { title: "f(x)", range: [parseFloat(rangoMin) - 5, parseFloat(rangoMax) + 5] },
     plot_bgcolor: "#fff",
     paper_bgcolor: "#fff"
   });
@@ -90,3 +111,4 @@ function resolverEcuacion() {
 
 </body>
 </html>
+
