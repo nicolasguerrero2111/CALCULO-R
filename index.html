@@ -2,24 +2,28 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Solucionador de Ecuaciones con Voz</title>
+  <title>Graficador de Funciones con Voz</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
-    input, button { margin: 5px; padding: 8px; }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f0f0; }
+    input, button { margin: 5px; padding: 10px; width: 300px; }
     button { cursor: pointer; }
     #resultado { margin-top: 20px; background-color: #fff; padding: 15px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-<h2>📈 Solucionador de Ecuaciones con Bot de Voz</h2>
-<p>Introduce los coeficientes de la ecuación: <strong>ax² + bx + c = 0</strong></p>
+<h2>🧠 Graficador de Cualquier Función + Bot que Habla</h2>
+<p>Escribe tu función (usa <strong>x</strong> como variable). Ejemplos:</p>
+<ul>
+  <li><code>x^2 + 2*x - 3</code></li>
+  <li><code>sin(x) + log(x + 5)</code></li>
+  <li><code>abs(x)</code>, <code>sqrt(x + 10)</code></li>
+</ul>
 
-<label>a: <input type="number" id="a" value="1"></label>
-<label>b: <input type="number" id="b" value="-2"></label>
-<label>c: <input type="number" id="c" value="-3"></label>
-<button onclick="resolverEcuacion()">Resolver y Graficar</button>
+<input type="text" id="funcion" value="x^2 - 2*x - 3" placeholder="Ej: x^2 + 3*x - 4">
+<br>
+<button onclick="graficarFuncion()">Graficar y Escuchar</button>
 
 <div id="resultado"></div>
 <div id="grafica" style="width: 100%; height: 500px;"></div>
@@ -27,82 +31,72 @@
 <script>
 function hablar(texto) {
   const voz = new SpeechSynthesisUtterance(texto);
-  voz.lang = "es-ES"; // Español
+  voz.lang = "es-ES";
   voz.pitch = 1.1;
   voz.rate = 1;
   speechSynthesis.speak(voz);
 }
 
-function resolverEcuacion() {
-  const a = parseFloat(document.getElementById("a").value);
-  const b = parseFloat(document.getElementById("b").value);
-  const c = parseFloat(document.getElementById("c").value);
+function graficarFuncion() {
+  const expresion = document.getElementById("funcion").value;
+  const funcionSegura = expresion
+    .replace(/\^/g, '**')               // Potencias
+    .replace(/sin/g, 'Math.sin')
+    .replace(/cos/g, 'Math.cos')
+    .replace(/tan/g, 'Math.tan')
+    .replace(/log/g, 'Math.log')        // log natural
+    .replace(/sqrt/g, 'Math.sqrt')
+    .replace(/abs/g, 'Math.abs')
+    .replace(/exp/g, 'Math.exp');
 
   const x = [];
   const y = [];
+  let minY = Infinity, maxY = -Infinity;
+
   for (let i = -20; i <= 20; i += 0.1) {
-    x.push(i);
-    y.push(a * i * i + b * i + c);
+    let scope = { x: i };
+    try {
+      const f = new Function("x", "return " + funcionSegura);
+      const yi = f(i);
+      if (isFinite(yi)) {
+        x.push(i);
+        y.push(yi);
+        if (yi < minY) minY = yi;
+        if (yi > maxY) maxY = yi;
+      }
+    } catch (error) {
+      document.getElementById("resultado").innerHTML = "<p style='color:red;'>⚠️ Error en la función. Revisa la sintaxis.</p>";
+      hablar("Hubo un error al interpretar la función. Por favor, revísala.");
+      return;
+    }
   }
 
-  const rangoMin = Math.min(...y).toFixed(2);
-  const rangoMax = Math.max(...y).toFixed(2);
   const dominio = "[-20, 20]";
-  const rango = `[${rangoMin}, ${rangoMax}]`;
-
-  let solucionTexto = "";
-  let textoBot = "";
-
-  if (a === 0) {
-    if (b !== 0) {
-      const raiz = (-c / b).toFixed(2);
-      solucionTexto = `Ecuación Lineal<br>Raíz: x = ${raiz}`;
-      textoBot = `La ecuación es lineal. Su raíz es ${raiz}.`;
-    } else {
-      solucionTexto = c === 0
-        ? "La ecuación tiene infinitas soluciones"
-        : "La ecuación no tiene solución";
-      textoBot = solucionTexto;
-    }
-  } else {
-    const discriminante = b * b - 4 * a * c;
-    if (discriminante > 0) {
-      const raiz1 = ((-b + Math.sqrt(discriminante)) / (2 * a)).toFixed(2);
-      const raiz2 = ((-b - Math.sqrt(discriminante)) / (2 * a)).toFixed(2);
-      solucionTexto = `Ecuación Cuadrática<br>Raíces reales: x = ${raiz1}, x = ${raiz2}`;
-      textoBot = `La ecuación es cuadrática. Tiene dos soluciones reales: ${raiz1} y ${raiz2}.`;
-    } else if (discriminante === 0) {
-      const raiz = (-b / (2 * a)).toFixed(2);
-      solucionTexto = `Ecuación Cuadrática<br>Raíz doble: x = ${raiz}`;
-      textoBot = `La ecuación es cuadrática. Tiene una raíz doble: ${raiz}.`;
-    } else {
-      solucionTexto = `Ecuación Cuadrática<br>No tiene soluciones reales`;
-      textoBot = `La ecuación cuadrática no tiene soluciones reales.`;
-    }
-  }
-
-  const infoExtra = `El dominio es de menos veinte a veinte. El rango va de ${rangoMin} hasta ${rangoMax}.`;
-  hablar(textoBot + " " + infoExtra);
+  const rango = `[${minY.toFixed(2)}, ${maxY.toFixed(2)}]`;
 
   document.getElementById("resultado").innerHTML = `
-    <h3>Resultado</h3>
-    <p>${solucionTexto}</p>
+    <h3>📊 Resultado</h3>
+    <p><strong>Función:</strong> f(x) = ${expresion}</p>
     <p><strong>Dominio:</strong> ${dominio}</p>
-    <p><strong>Rango:</strong> ${rango}</p>
+    <p><strong>Rango aproximado:</strong> ${rango}</p>
     <p>🗣️ El bot ha leído esta información en voz alta.</p>
   `;
+
+  hablar(`La función f de x igual a ${expresion.replace(/\*/g, " por ").replace(/\^/g, " elevado a ")} 
+    fue graficada con éxito. El dominio va de menos veinte a veinte. 
+    El rango aproximado está entre ${minY.toFixed(2)} y ${maxY.toFixed(2)}.`);
 
   Plotly.newPlot("grafica", [{
     x: x,
     y: y,
     type: "scatter",
     mode: "lines",
-    line: { color: "blue" },
+    line: { color: "green" },
     name: "f(x)"
   }], {
-    title: "Gráfica de la función",
+    title: "Gráfica de f(x)",
     xaxis: { title: "x", range: [-20, 20] },
-    yaxis: { title: "f(x)", range: [parseFloat(rangoMin) - 5, parseFloat(rangoMax) + 5] },
+    yaxis: { title: "f(x)", range: [minY - 5, maxY + 5] },
     plot_bgcolor: "#fff",
     paper_bgcolor: "#fff"
   });
@@ -111,4 +105,3 @@ function resolverEcuacion() {
 
 </body>
 </html>
-
